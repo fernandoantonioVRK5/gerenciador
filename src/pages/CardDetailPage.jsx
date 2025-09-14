@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, PlusCircle, Search, Pencil, Trash2, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/SupabaseClient';
 import ExpenseModal from '../components/modals/ExpenseModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -294,4 +294,5 @@ export default function CardDetailPage() {
       </motion.div>
     </>
   );
+
 }
