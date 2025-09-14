@@ -1,7 +1,7 @@
 // src/contexts/DataContext.jsx
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/SupabaseClient';
 
 const DataContext = createContext();
 
@@ -70,4 +70,5 @@ export function DataProvider({ children }) {
 
 export function useData() {
   return useContext(DataContext);
+
 }
