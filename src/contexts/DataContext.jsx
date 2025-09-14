@@ -1,7 +1,7 @@
 // src/contexts/DataContext.jsx
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/SupabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 const DataContext = createContext();
 
