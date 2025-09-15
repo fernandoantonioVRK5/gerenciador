@@ -5,10 +5,9 @@ import { Link } from 'react-router-dom';
 import { CreditCard } from '../dashboard/CreditCard';
 import { QrCode } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useData } from '../../contexts/DataContext'; // Para pegar a data selecionada
-import { supabase } from '../../lib/supabaseClient';  // Para conectar ao backend
+import { useData } from '../../contexts/DataContext';
+import { supabase } from '../../lib/supabaseClient';
 
-// ... (as variantes de animação continuam as mesmas)
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -31,14 +30,10 @@ const itemVariants = {
 };
 
 export function BanksTab() {
-  // 1. Estados para armazenar os saldos e o estado de carregamento
   const [balances, setBalances] = useState({ nubank: 0, inter: 0, pix: 0 });
   const [loading, setLoading] = useState(true);
-  
-  // Pega a data selecionada do nosso contexto global
   const { selectedDate } = useData();
 
-  // 2. Efeito para buscar os dados sempre que a data selecionada mudar
   useEffect(() => {
     const fetchBalances = async () => {
       setLoading(true);
@@ -48,10 +43,10 @@ export function BanksTab() {
       const firstDay = new Date(year, month, 1).toISOString().slice(0, 10);
       const lastDay = new Date(year, month + 1, 0).toISOString().slice(0, 10);
 
-      // 3. Consulta ao Supabase para buscar as parcelas do mês
+      // CORREÇÃO NA CONSULTA: agora seleciona dados de 'despesas_fixas' também
       const { data: parcels, error } = await supabase
         .from('parcelas')
-        .select('valor_parcela, despesas(metodo_pagamento)') // Pega o valor e o método de pagamento da despesa relacionada
+        .select('valor_parcela, despesas(metodo_pagamento), despesas_fixas(metodo_pagamento)')
         .gte('data_vencimento', firstDay)
         .lte('data_vencimento', lastDay);
 
@@ -61,12 +56,13 @@ export function BanksTab() {
         return;
       }
       
-      // 4. Agrega os dados para calcular o total de cada método de pagamento
       const totals = { nubank: 0, inter: 0, pix: 0 };
       if (parcels) {
         for (const parcel of parcels) {
-          const method = parcel.despesas.metodo_pagamento;
-          if (totals.hasOwnProperty(method)) {
+          // CORREÇÃO NA LÓGICA: verifica se o método veio de 'despesas' OU 'despesas_fixas'
+          const method = parcel.despesas?.metodo_pagamento || parcel.despesas_fixas?.metodo_pagamento;
+
+          if (method && totals.hasOwnProperty(method)) {
             totals[method] += parcel.valor_parcela;
           }
         }
@@ -77,11 +73,10 @@ export function BanksTab() {
     };
 
     fetchBalances();
-  }, [selectedDate]); // Dependência: Roda de novo se a data mudar
+  }, [selectedDate]);
 
   const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   
-  // Exibe uma mensagem enquanto os dados são carregados
   if (loading) {
     return <p className="text-zinc-400 text-center">Calculando faturas...</p>
   }
@@ -99,7 +94,7 @@ export function BanksTab() {
             bank="nubank"
             cardHolder="Fernando Antonio"
             lastFourDigits="2682"
-            balance={balances.nubank} // 5. Usa o valor do estado
+            balance={balances.nubank}
           />
         </Link>
       </motion.div>
@@ -110,7 +105,7 @@ export function BanksTab() {
             bank="inter"
             cardHolder="Fernando Antonio"
             lastFourDigits="3338"
-            balance={balances.inter} // 5. Usa o valor do estado
+            balance={balances.inter}
           />
         </Link>
       </motion.div>
@@ -124,7 +119,7 @@ export function BanksTab() {
             </div>
             <div className="text-right">
               <p className="text-sm text-zinc-400">Despesas no PIX</p>
-              <p className="text-3xl font-bold text-white">{formatCurrency(balances.pix)}</p> {/* 5. Usa o valor do estado */}
+              <p className="text-3xl font-bold text-white">{formatCurrency(balances.pix)}</p>
             </div>
           </div>
         </Link>
