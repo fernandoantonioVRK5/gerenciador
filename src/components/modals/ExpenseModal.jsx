@@ -88,16 +88,55 @@ export default function ExpenseModal({ isOpen, onClose, cardId, onSave, initialD
     } else {
       // --- LÓGICA DE CRIAÇÃO (INSERT) ---
       if (isDespesaFixa) {
-        const diaVencimento = new Date(dataCobranca + 'T00:00:00').getDate();
-        const { data, error } = await supabase.from('despesas_fixas').insert({ descricao, valor_mensal: valorNumerico, categoria, metodo_pagamento: cardId, dia_vencimento: diaVencimento, recorrente: isRecorrente }).select('id').single();
-        if (error) { alert('Erro ao criar despesa fixa: ' + error.message); setIsSubmitting(false); return; }
+        // 1. Pega a data de hoje, zerando a hora para comparações seguras.
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        // 2. Extrai o dia do vencimento selecionado pelo usuário no formulário.
+        const dataSelecionada = new Date(dataCobranca + 'T00:00:00');
+        const diaVencimento = dataSelecionada.getDate();
+
+        // 3. Monta a data de vencimento potencial para o mês ATUAL.
+        let dataInicialCobranca = new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento);
+        
+        // 4. Se a data de vencimento já passou neste mês (ou é hoje), a primeira cobrança será no próximo mês.
+        if (dataInicialCobranca <= hoje) {
+            dataInicialCobranca = addMonths(dataInicialCobranca, 1);
+        }
+        
+        // Agora, o resto do código usa as variáveis calculadas corretamente.
+        const { data, error } = await supabase
+            .from('despesas_fixas')
+            .insert({
+                descricao,
+                valor_mensal: valorNumerico,
+                categoria,
+                metodo_pagamento: cardId,
+                dia_vencimento: diaVencimento, // Armazena apenas o dia
+                recorrente: isRecorrente
+            })
+            .select('id')
+            .single();
+
+        if (error) { 
+            alert('Erro ao criar despesa fixa: ' + error.message); 
+            setIsSubmitting(false); 
+            return; 
+        }
         
         const parcelasCount = isRecorrente ? 12 : 1;
-        const dataInicialCobranca = new Date(dataCobranca + 'T00:00:00');
+        
+        // O loop agora começa a partir da 'dataInicialCobranca' que calculamos.
         const parcelas = Array.from({ length: parcelasCount }, (_, i) => ({
-          despesa_fixa_id: data.id, numero_parcela: i + 1, valor_parcela: valorNumerico, data_vencimento: format(addMonths(dataInicialCobranca, i), 'yyyy-MM-dd'), pago: false
+            despesa_fixa_id: data.id,
+            numero_parcela: i + 1,
+            valor_parcela: valorNumerico,
+            data_vencimento: format(addMonths(dataInicialCobranca, i), 'yyyy-MM-dd'),
+            pago: false
         }));
+
         await supabase.from('parcelas').insert(parcelas);
+
       } else {
         const { data, error } = await supabase.from('despesas').insert({ descricao, valor_total: valorNumerico, data_compra: dataCompra, categoria, metodo_pagamento: cardId }).select('id').single();
         if (error) { alert('Erro ao criar despesa: ' + error.message); setIsSubmitting(false); return; }
