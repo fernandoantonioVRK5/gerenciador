@@ -3,16 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, PlusCircle, Search, Pencil, Trash2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import ExpenseModal from '../components/modals/ExpenseModal';
-import InstallmentDetailModal from '../components/modals/InstallmentDetailModal'; // 1. IMPORTAR O NOVO MODAL
+import InstallmentDetailModal from '../components/modals/InstallmentDetailModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../contexts/DataContext';
+import { format, parseISO } from 'date-fns'; // 1. IMPORTAÇÕES ADICIONAIS DE 'date-fns'
 
 const ITEMS_PER_PAGE = 8;
 
 export default function CardDetailPage() {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { selectedDate } = useData();
+  // 2. PEGAR O 'setSelectedDate' DO CONTEXTO PARA PODER ATUALIZAR A DATA
+  const { selectedDate, setSelectedDate } = useData();
 
   // Estados principais
   const [transactions, setTransactions] = useState([]);
@@ -22,7 +24,7 @@ export default function CardDetailPage() {
   // Estados dos modais
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [detailModalData, setDetailModalData] = useState(null); // 2. NOVO ESTADO PARA O MODAL DE DETALHES
+  const [detailModalData, setDetailModalData] = useState(null);
 
   // Estados para os controles de filtro e paginação
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,8 +33,18 @@ export default function CardDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // 3. LÓGICA PARA CONTROLAR O INPUT DE DATA (COPIADA DO Header.jsx)
+  const dateValue = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
+
+  function handleDateChange(event) {
+    const dateString = event.target.value;
+    if (dateString) {
+      const newDate = parseISO(dateString);
+      setSelectedDate(newDate);
+    }
+  }
+
   const fetchTransactions = useCallback(async () => {
-    // A função fetch não muda, continua a mesma da correção anterior
     setLoading(true);
     setError(null);
     const year = selectedDate.getFullYear();
@@ -67,7 +79,7 @@ export default function CardDetailPage() {
   }, [sortOrder]);
 
   const handleDelete = async (e, parcela) => {
-    e.stopPropagation(); // Impede que o modal de detalhes abra ao clicar no ícone de lixeira
+    e.stopPropagation();
     if (!window.confirm("Você tem certeza?")) return;
     const parentExpense = parcela.despesas || parcela.despesas_fixas;
     const totalParcelas = parentExpense.parcelas[0].count;
@@ -88,7 +100,7 @@ export default function CardDetailPage() {
   };
   
   const handleEdit = (e, transaction) => {
-    e.stopPropagation(); // Impede que o modal de detalhes abra ao clicar no ícone de editar
+    e.stopPropagation();
     setEditingTransaction(transaction);
     setExpenseModalOpen(true);
   };
@@ -98,17 +110,13 @@ export default function CardDetailPage() {
     setExpenseModalOpen(true);
   };
   
-  // 3. FUNÇÃO PARA ABRIR O MODAL DE DETALHES
   const handleOpenDetailModal = (transaction) => {
     const parentExpense = transaction.despesas || transaction.despesas_fixas;
-    // Só abre o modal se for uma despesa parcelada
     if (parentExpense.parcelas[0].count > 1) {
       setDetailModalData(transaction);
     }
   };
 
-
-  // A lógica de filtragem e paginação continua a mesma...
   const filteredAndSortedTransactions = useMemo(() => {
     let result = [...transactions];
     if (startDate) result = result.filter(tx => new Date(tx.data_vencimento + 'T00:00:00') >= new Date(startDate + 'T00:00:00'));
@@ -151,7 +159,6 @@ export default function CardDetailPage() {
         initialData={editingTransaction}
       />
       
-      {/* 4. RENDERIZA O NOVO MODAL */}
       <InstallmentDetailModal 
         isOpen={Boolean(detailModalData)}
         onClose={() => setDetailModalData(null)}
@@ -163,12 +170,32 @@ export default function CardDetailPage() {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       >
         <div className="max-w-4xl mx-auto">
-          {/* O cabeçalho, busca e filtros continuam os mesmos... */}
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-8"><ArrowLeft className="w-5 h-5" />Voltar</button>
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold">Detalhes: <span className="text-cyan-400">{cardName}</span></h1>
-            <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors"><PlusCircle className="w-5 h-5" />Nova Despesa</button>
+          
+          {/* 4. ADICIONA O SELETOR DE DATA AO LADO DO BOTÃO DE VOLTAR */}
+          <div className="flex justify-between items-center mb-8">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300">
+              <ArrowLeft className="w-5 h-5" />
+              Voltar
+            </button>
+            <input
+              type="date"
+              value={dateValue}
+              onChange={handleDateChange}
+              className="bg-zinc-800 border border-zinc-700 rounded-md px-3 py-1.5 text-zinc-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 color-scheme-dark"
+            />
           </div>
+          
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold">
+              Detalhes: <span className="text-cyan-400">{cardName}</span>
+            </h1>
+            <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+              <PlusCircle className="w-5 h-5" />
+              Nova Despesa
+            </button>
+          </div>
+          
+          {/* O resto do componente continua igual... */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" /><input type="text" placeholder={`Buscar em ${cardName}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-style w-full pl-10"/></div>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -192,14 +219,8 @@ export default function CardDetailPage() {
                       if (!parentExpense) return null;
                       const totalParcelas = parentExpense.parcelas[0].count;
                       const isInstallment = totalParcelas > 1;
-
                       return (
-                        // 5. ADICIONA ONCLICK E ESTILIZAÇÃO NO ITEM DA LISTA
-                        <li 
-                          key={tx.id} 
-                          onClick={() => handleOpenDetailModal(tx)}
-                          className={`py-4 flex flex-col sm:flex-row justify-between items-start gap-4 ${isInstallment ? 'cursor-pointer hover:bg-zinc-800/50 -mx-4 px-4 rounded-md' : ''} transition-colors duration-200`}
-                        >
+                        <li key={tx.id} onClick={() => handleOpenDetailModal(tx)} className={`py-4 flex flex-col sm:flex-row justify-between items-start gap-4 ${isInstallment ? 'cursor-pointer hover:bg-zinc-800/50 -mx-4 px-4 rounded-md' : ''} transition-colors duration-200`}>
                           <div className="flex-1">
                             <p className="font-medium text-zinc-200">{parentExpense.descricao} {isInstallment && `(${tx.numero_parcela}/${totalParcelas})`}</p>
                             <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 mt-1">
@@ -210,19 +231,14 @@ export default function CardDetailPage() {
                           <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                             <span className="font-semibold text-rose-400 text-lg">{formatCurrency(tx.valor_parcela)}</span>
                             <div className="flex items-center gap-2">
-                                <button onClick={(e) => handleEdit(e, tx)} className="p-2 text-zinc-400 hover:text-sky-400 hover:bg-zinc-800 rounded-md transition-colors">
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                <button onClick={(e) => handleDelete(e, tx)} className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-zinc-800 rounded-md transition-colors">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <button onClick={(e) => handleEdit(e, tx)} className="p-2 text-zinc-400 hover:text-sky-400 hover:bg-zinc-800 rounded-md transition-colors"><Pencil className="w-4 h-4" /></button>
+                                <button onClick={(e) => handleDelete(e, tx)} className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-zinc-800 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </div>
                         </li>
                       );
                     })}
                   </ul>
-                  {/* Paginação continua a mesma... */}
                   <div className="flex justify-between items-center mt-6 text-sm"><button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Anterior</button><span className="text-zinc-400">Página {currentPage} de {pageCount}</span><button onClick={() => setCurrentPage(p => Math.min(p + 1, pageCount))} disabled={currentPage === pageCount} className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Próxima</button></div>
                 </>
               )}
