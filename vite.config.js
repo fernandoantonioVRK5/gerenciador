@@ -28,12 +28,12 @@ export default defineConfig({
         categories: ['finance', 'productivity'],
         icons: [
           // Garanta que esses arquivos existam em /public/icons/
-          { src: '/icons/fa-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/fa-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/fa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable any' },
+          { src: '/fa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/fa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/fa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable any' },
           // iOS / extras
-          { src: '/icons/fa-180.png', sizes: '180x180', type: 'image/png' },
-          { src: '/icons/fa-384.png', sizes: '384x384', type: 'image/png' },
+          { src: '/fa-180.png', sizes: '180x180', type: 'image/png' },
+          { src: '/fa-384.png', sizes: '384x384', type: 'image/png' },
         ],
         shortcuts: [
           { name: 'Nova despesa', url: '/despesas/nova', description: 'Adicionar despesa' },
