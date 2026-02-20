@@ -71,6 +71,16 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
+  // --- NOVA FUNÇÃO: Dispara o email de recuperação ---
+  const resetPassword = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Redireciona o usuário de volta para o seu app após ele clicar no link do email.
+      // Você precisará de uma rota no React Router para essa página.
+      redirectTo: `${window.location.origin}/atualizar-senha`, 
+    });
+    if (error) throw error;
+  };
+
   // 3. Define os valores que o contexto vai prover
   const value = {
     session,
@@ -79,6 +89,7 @@ export function AuthProvider({ children }) {
     logout,
     signUp,
     updatePassword,
+    resetPassword, // <-- Expondo a nova função no contexto
   };
 
   // Retorna o Provedor envolvendo os componentes filhos
